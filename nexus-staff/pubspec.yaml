@@ -1,0 +1,60 @@
+name: nexus_staff
+description: NEXUS Staff Crisis Response App — Google Solution Challenge 2026
+publish_to: "none"
+version: 1.0.0+1
+
+environment:
+  sdk: ">=3.0.0 <4.0.0"
+
+dependencies:
+  flutter:
+    sdk: flutter
+  # Firebase
+  firebase_core: ^2.27.0
+  firebase_auth: ^4.17.8
+  cloud_firestore: ^4.15.8
+  firebase_messaging: ^14.7.19
+  # Notifications
+  flutter_local_notifications: ^16.3.2
+  # State Management
+  flutter_riverpod: ^2.5.1
+  # Navigation
+  go_router: ^13.2.2
+  # Animations
+  flutter_animate: ^4.5.0
+  lottie: ^3.1.0
+  # Speech
+  speech_to_text: ^6.6.0
+  # Utils
+  gap: ^3.0.1
+  intl: ^0.19.0
+  shared_preferences: ^2.2.3
+  # HTTP
+  http: ^1.2.1
+  # Icons
+  cupertino_icons: ^1.0.6
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^3.0.0
+
+flutter:
+  uses-material-design: true
+  assets:
+    - assets/images/
+    - assets/animations/
+  fonts:
+    - family: Inter
+      fonts:
+        - asset: assets/fonts/Inter-Regular.ttf
+        - asset: assets/fonts/Inter-Medium.ttf
+          weight: 500
+        - asset: assets/fonts/Inter-SemiBold.ttf
+          weight: 600
+        - asset: assets/fonts/Inter-Bold.ttf
+          weight: 700
+        - asset: assets/fonts/Inter-ExtraBold.ttf
+          weight: 800
+        - asset: assets/fonts/Inter-Black.ttf
+          weight: 900

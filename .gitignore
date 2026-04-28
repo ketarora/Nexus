@@ -1,0 +1,36 @@
+# ─── Next.js ───────────────────────────────────────
+nexus-web/.next/
+nexus-web/out/
+nexus-web/node_modules/
+nexus-web/.env.local
+
+# ─── Firebase Functions ─────────────────────────────
+nexus-functions/node_modules/
+nexus-functions/lib/
+nexus-functions/.env.local
+
+# ─── Flutter ───────────────────────────────────────
+nexus-staff/.dart_tool/
+nexus-staff/.flutter-plugins
+nexus-staff/.flutter-plugins-dependencies
+nexus-staff/build/
+nexus-staff/android/.gradle/
+nexus-staff/android/local.properties
+nexus-staff/android/app/google-services.json
+nexus-staff/ios/Pods/
+nexus-staff/ios/Flutter/flutter_export_environment.sh
+nexus-staff/ios/Runner.xcworkspace/xcshareddata/
+nexus-staff/ios/GoogleService-Info.plist
+
+# ─── Firebase ──────────────────────────────────────
+.firebase/
+firebase-debug.log
+firestore-debug.log
+ui-debug.log
+.firebaserc.local
+
+# ─── General ───────────────────────────────────────
+.DS_Store
+*.log
+.env
+*.secrets

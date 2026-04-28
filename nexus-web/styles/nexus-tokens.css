@@ -1,0 +1,139 @@
+/* =============================================================
+   NEXUS DESIGN TOKENS — Global CSS Variables
+   Design Language: Calm in Chaos. Clarity in Crisis.
+   ============================================================= */
+
+:root {
+  /* ─── Surfaces ─── */
+  --nx-bg: #FAFBFC;
+  --nx-surface: #FFFFFF;
+  --nx-surface-2: #F4F6F8;
+  --nx-surface-3: #EEF1F5;
+  --nx-border: #E5E9EF;
+  --nx-border-strong: #D0D7DE;
+
+  /* ─── Text ─── */
+  --nx-ink: #0A0E1A;
+  --nx-ink-2: #3D4759;
+  --nx-ink-3: #6B7689;
+  --nx-ink-4: #9CA5B4;
+
+  /* ─── Brand ─── */
+  --nx-primary: #0052FF;
+  --nx-primary-soft: #E6EFFF;
+  --nx-primary-ink: #003BB8;
+
+  /* ─── Severity Scale ─── */
+  --nx-critical: #FF1744;
+  --nx-critical-soft: #FFEBEE;
+  --nx-critical-border: #FF8A80;
+  --nx-high: #FF6B00;
+  --nx-high-soft: #FFF3E6;
+  --nx-medium: #F5A623;
+  --nx-medium-soft: #FFF8E6;
+  --nx-low: #2EA043;
+  --nx-low-soft: #E6F7EB;
+  --nx-info: #0969DA;
+  --nx-info-soft: #DDF4FF;
+
+  /* ─── Shadows ─── */
+  --nx-shadow-sm: 0 1px 2px rgba(10,14,26,0.04), 0 0 1px rgba(10,14,26,0.06);
+  --nx-shadow-md: 0 4px 12px rgba(10,14,26,0.06), 0 1px 3px rgba(10,14,26,0.04);
+  --nx-shadow-lg: 0 16px 32px rgba(10,14,26,0.08), 0 4px 8px rgba(10,14,26,0.04);
+  --nx-shadow-xl: 0 24px 48px rgba(10,14,26,0.12);
+  --nx-shadow-critical: 0 0 0 4px rgba(255,23,68,0.12), 0 8px 24px rgba(255,23,68,0.24);
+  --nx-shadow-primary: 0 0 24px rgba(0,82,255,0.18);
+
+  /* ─── Motion ─── */
+  --nx-ease-out: cubic-bezier(0.16, 1, 0.3, 1);
+  --nx-ease-spring: cubic-bezier(0.34, 1.56, 0.64, 1);
+  --nx-dur-fast: 150ms;
+  --nx-dur-base: 250ms;
+  --nx-dur-slow: 400ms;
+
+  /* ─── Radii ─── */
+  --nx-r-sm: 8px;
+  --nx-r-md: 12px;
+  --nx-r-lg: 16px;
+  --nx-r-xl: 24px;
+  --nx-r-full: 9999px;
+
+  /* ─── Fonts ─── */
+  --nx-font-display: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+  --nx-font-body: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+  --nx-font-mono: 'JetBrains Mono', 'Fira Code', 'SF Mono', monospace;
+}
+
+/* ─── Animations ─── */
+@keyframes nx-pulse-critical {
+  0%, 100% { box-shadow: 0 0 12px rgba(255, 23, 68, 0.3); }
+  50% { box-shadow: 0 0 32px rgba(255, 23, 68, 0.7), 0 0 60px rgba(255, 23, 68, 0.3); }
+}
+
+@keyframes nx-ring-expand {
+  0% { transform: scale(1); opacity: 0.6; }
+  100% { transform: scale(2.5); opacity: 0; }
+}
+
+@keyframes nx-breathe {
+  0%, 100% { transform: scale(1); opacity: 0.8; }
+  50% { transform: scale(1.08); opacity: 1; }
+}
+
+@keyframes nx-slide-up {
+  from { transform: translateY(16px); opacity: 0; }
+  to { transform: translateY(0); opacity: 1; }
+}
+
+@keyframes nx-slide-in-right {
+  from { transform: translateX(100%); opacity: 0; }
+  to { transform: translateX(0); opacity: 1; }
+}
+
+@keyframes nx-count-up {
+  from { transform: translateY(8px); opacity: 0; }
+  to { transform: translateY(0); opacity: 1; }
+}
+
+@keyframes nx-spin-slow {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+@keyframes nx-shimmer {
+  0% { background-position: -200% 0; }
+  100% { background-position: 200% 0; }
+}
+
+/* ─── Utility Classes ─── */
+.nx-critical-pulse {
+  animation: nx-pulse-critical 2s ease-in-out infinite;
+}
+
+.nx-breathe {
+  animation: nx-breathe 4s ease-in-out infinite;
+}
+
+.nx-slide-up {
+  animation: nx-slide-up 0.4s var(--nx-ease-out) forwards;
+}
+
+.nx-skeleton {
+  background: linear-gradient(90deg, var(--nx-surface-2) 25%, var(--nx-border) 50%, var(--nx-surface-2) 75%);
+  background-size: 200% 100%;
+  animation: nx-shimmer 1.5s ease-in-out infinite;
+  border-radius: var(--nx-r-sm);
+}
+
+/* Severity badge utilities */
+.severity-5 { background: var(--nx-critical); color: white; }
+.severity-4 { background: var(--nx-high); color: white; }
+.severity-3 { background: var(--nx-medium); color: white; }
+.severity-2 { background: var(--nx-info); color: white; }
+.severity-1 { background: var(--nx-low); color: white; }
+
+/* Scrollbar styling */
+::-webkit-scrollbar { width: 6px; height: 6px; }
+::-webkit-scrollbar-track { background: var(--nx-surface-2); }
+::-webkit-scrollbar-thumb { background: var(--nx-border-strong); border-radius: 3px; }
+::-webkit-scrollbar-thumb:hover { background: var(--nx-ink-4); }
