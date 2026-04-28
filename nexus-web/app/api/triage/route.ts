@@ -1,30 +1,32 @@
 import { NextRequest, NextResponse } from "next/server";
-import { GoogleGenerativeAI, SchemaType } from "@google/generative-ai";
+// Notice we REMOVED SchemaType from this import
+import { GoogleGenerativeAI } from "@google/generative-ai";
 
 const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY!);
 
+// We replaced all SchemaType.XXX with raw lowercase strings
 const incidentSchema = {
-  type: SchemaType.OBJECT,
+  type: "object",
   properties: {
-    severity: { type: SchemaType.INTEGER },
-    classification: { type: SchemaType.STRING },
-    immediateRisk: { type: SchemaType.BOOLEAN },
-    affectedZones: { type: SchemaType.ARRAY, items: { type: SchemaType.STRING } },
+    severity: { type: "integer" },
+    classification: { type: "string" },
+    immediateRisk: { type: "boolean" },
+    affectedZones: { type: "array", items: { type: "string" } },
     staffProtocols: {
-      type: SchemaType.OBJECT,
+      type: "object",
       properties: {
-        security: { type: SchemaType.STRING },
-        medical: { type: SchemaType.STRING },
-        maintenance: { type: SchemaType.STRING },
-        management: { type: SchemaType.STRING },
-        housekeeping: { type: SchemaType.STRING },
+        security: { type: "string" },
+        medical: { type: "string" },
+        maintenance: { type: "string" },
+        management: { type: "string" },
+        housekeeping: { type: "string" },
       },
     },
-    guestInstructions: { type: SchemaType.STRING },
-    emergencyBrief: { type: SchemaType.STRING },
-    estimatedResponseMinutes: { type: SchemaType.INTEGER },
-    riskScore: { type: SchemaType.INTEGER },
-    reasoningChain: { type: SchemaType.ARRAY, items: { type: SchemaType.STRING } },
+    guestInstructions: { type: "string" },
+    emergencyBrief: { type: "string" },
+    estimatedResponseMinutes: { type: "integer" },
+    riskScore: { type: "integer" },
+    reasoningChain: { type: "array", items: { type: "string" } },
   },
   required: ["severity", "classification", "staffProtocols", "emergencyBrief", "guestInstructions", "riskScore"],
 };
