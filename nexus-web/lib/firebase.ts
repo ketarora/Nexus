@@ -1,5 +1,5 @@
 // =====================================================
-// NEXUS — Firebase Client SDK
+// NEXUS — Firebase Client SDK (with Demo Mode)
 // =====================================================
 import { initializeApp, getApps } from "firebase/app";
 import { getFirestore } from "firebase/firestore";
@@ -15,18 +15,38 @@ const firebaseConfig = {
   appId: process.env.NEXT_PUBLIC_FIREBASE_APP_ID,
 };
 
-// Initialize once (Next.js hot-reload guard)
-const app = getApps().length === 0 ? initializeApp(firebaseConfig) : getApps()[0];
+// Detect demo mode — no Firebase keys = demo mode
+export const isDemoMode = !firebaseConfig.apiKey || firebaseConfig.apiKey === "YOUR_API_KEY";
 
-export const db = getFirestore(app);
-export const auth = getAuth(app);
+let app: ReturnType<typeof initializeApp> | undefined;
+let db: ReturnType<typeof getFirestore>;
+let auth: ReturnType<typeof getAuth>;
+
+if (!isDemoMode) {
+  app = getApps().length === 0 ? initializeApp(firebaseConfig) : getApps()[0];
+  db = getFirestore(app);
+  auth = getAuth(app);
+} else {
+  // Demo mode: create minimal stubs so imports don't break
+  app = undefined as any;
+  db = {} as any;
+  auth = {
+    currentUser: null,
+    onAuthStateChanged: () => () => {},
+    signInWithEmailAndPassword: async () => ({ user: { uid: "demo_manager", email: "demo@nexus.com" } }),
+    signOut: async () => {},
+  } as any;
+}
+
+export { db, auth };
 
 export async function getMessagingInstance() {
-  if (typeof window !== "undefined" && (await isSupported())) {
+  if (!isDemoMode && typeof window !== "undefined" && (await isSupported())) {
     const { getMessaging } = await import("firebase/messaging");
-    return getMessaging(app);
+    return getMessaging(app!);
   }
   return null;
 }
 
 export default app;
+

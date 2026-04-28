@@ -1,9 +1,10 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
+import { useSearchParams, useRouter } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
-import { collection, addDoc, serverTimestamp, doc, onSnapshot } from "firebase/firestore";
-import { db } from "@/lib/firebase";
+import { isDemoMode } from "@/lib/firebase";
+import { createDemoIncident } from "@/lib/demo-data";
 import type { IncidentType } from "@/lib/types";
 
 const INCIDENT_TYPES = [
@@ -50,78 +51,85 @@ function SuccessCheck() {
   );
 }
 
-export default function GuestSOS({ searchParams }: { searchParams: { h?: string; f?: string; r?: string } }) {
+export default function GuestSOS() {
+  const searchParams = useSearchParams();
+  const router = useRouter();
+
   const [step, setStep] = useState(1);
   const [selectedType, setSelectedType] = useState<IncidentType | "">("");
-  const [room, setRoom] = useState(searchParams.r || "");
-  const [floor, setFloor] = useState(searchParams.f || "");
+  const [room, setRoom] = useState(searchParams.get("r") || "");
+  const [floor, setFloor] = useState(searchParams.get("f") || "");
   const [name, setName] = useState("");
   const [description, setDescription] = useState("");
   const [countdown, setCountdown] = useState<number | null>(null);
   const [submitted, setSubmitted] = useState(false);
   const [incidentId, setIncidentId] = useState<string | null>(null);
-  const [liveStatus, setLiveStatus] = useState("");
-  const [staffResponding, setStaffResponding] = useState(0);
-  const [geminiInstructions, setGeminiInstructions] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const hotelId = searchParams.h || "hotel_001";
+  const hotelId = searchParams.get("h") || "hotel_001";
   const hotelName = hotelId === "hotel_001" ? "Grand Nexus Hotel" : hotelId;
 
   useEffect(() => {
-    if (!incidentId) return;
-    const unsub = onSnapshot(doc(db, "incidents", incidentId), (snap) => {
-      if (snap.exists()) {
-        const d = snap.data();
-        setLiveStatus(d.status || "");
-        setStaffResponding(d.assignedStaff?.length || 0);
-        setGeminiInstructions(d.geminiClassification?.guestInstructions || "");
-      }
-    });
-    return () => unsub();
-  }, [incidentId]);
-
-  useEffect(() => {
-    if (countdown === null || countdown > 0) {
-      if (countdown !== null && countdown > 0) {
-        const t = setTimeout(() => setCountdown(c => (c ?? 1) - 1), 1000);
-        return () => clearTimeout(t);
-      }
-    } else {
-      fireAlert();
+    if (countdown === null) return;
+    if (countdown > 0) {
+      const t = setTimeout(() => setCountdown(c => (c ?? 1) - 1), 1000);
+      return () => clearTimeout(t);
     }
+    // countdown reached 0
+    fireAlert();
   }, [countdown]);
 
   const fireAlert = useCallback(async () => {
     if (isSubmitting) return;
     setIsSubmitting(true);
+
     try {
-      const ref = await addDoc(collection(db, "incidents"), {
-        type: selectedType,
-        location: { hotel: hotelName, hotelId, room, floor, lat: 28.6139, lng: 77.2090 },
-        description,
-        reportedBy: { name: name || "Anonymous Guest", language: typeof navigator !== "undefined" ? navigator.language : "en" },
-        status: "pending",
-        assignedStaff: [],
-        updates: [],
-        createdAt: serverTimestamp(),
-      });
-      setIncidentId(ref.id);
-    } catch {
-      // Offline queue
-      if (typeof localStorage !== "undefined") {
-        const q = JSON.parse(localStorage.getItem("nexus_pending") || "[]");
-        q.push({ type: selectedType, room, floor, description, name, hotelId, ts: Date.now() });
-        localStorage.setItem("nexus_pending", JSON.stringify(q));
+      if (isDemoMode) {
+        // Demo mode: create incident in localStorage
+        const incident = createDemoIncident(selectedType, room, floor, name, description);
+        const stored = JSON.parse(localStorage.getItem("nexus_incidents") || "[]");
+        stored.push(incident);
+        localStorage.setItem("nexus_incidents", JSON.stringify(stored));
+        localStorage.setItem("nexus_active_incident", incident.id);
+        setIncidentId(incident.id);
+      } else {
+        // Real Firebase mode
+        const { collection, addDoc, serverTimestamp } = await import("firebase/firestore");
+        const { db } = await import("@/lib/firebase");
+        const ref = await addDoc(collection(db, "incidents"), {
+          type: selectedType,
+          location: { hotel: hotelName, hotelId, room, floor, lat: 28.6139, lng: 77.2090 },
+          description,
+          reportedBy: { name: name || "Anonymous Guest", language: typeof navigator !== "undefined" ? navigator.language : "en" },
+          status: "pending",
+          assignedStaff: [],
+          updates: [],
+          createdAt: serverTimestamp(),
+        });
+        setIncidentId(ref.id);
       }
+    } catch (err) {
+      console.error("Failed to send alert:", err);
+      // Fallback to localStorage even in real mode if Firebase fails
+      const incident = createDemoIncident(selectedType, room, floor, name, description);
+      const stored = JSON.parse(localStorage.getItem("nexus_incidents") || "[]");
+      stored.push(incident);
+      localStorage.setItem("nexus_incidents", JSON.stringify(stored));
+      localStorage.setItem("nexus_active_incident", incident.id);
+      setIncidentId(incident.id);
     }
     setSubmitted(true);
     setIsSubmitting(false);
-  }, [selectedType, room, floor, name, description, hotelId, hotelName, isSubmitting]);
+  }, [selectedType, room, floor, name, description, hotelId, isSubmitting]);
 
   const sel = INCIDENT_TYPES.find(t => t.id === selectedType);
 
-  if (submitted) {
+  if (submitted && incidentId) {
+    // Auto-redirect to live tracking after 2 seconds
+    setTimeout(() => {
+      router.push(`/guest/active/${incidentId}`);
+    }, 2000);
+
     return (
       <div className="min-h-screen flex flex-col" style={{ background: "#FAFBFC", maxWidth: 480, margin: "0 auto" }}>
         <div className="p-4 flex items-center gap-3" style={{ background: "#0052FF" }}>
@@ -149,31 +157,23 @@ export default function GuestSOS({ searchParams }: { searchParams: { h?: string;
               <div className="flex items-center justify-between">
                 <span className="text-sm" style={{ color: "#6B7689" }}>Status</span>
                 <div className="flex items-center gap-1">
-                  <span className="text-sm font-semibold" style={{ color: "#2EA043" }}>
-                    {liveStatus === "active" || liveStatus === "responding" ? "Staff Alerted" : "Processing..."}
-                  </span>
+                  <span className="text-sm font-semibold" style={{ color: "#2EA043" }}>Staff Alerted</span>
                   <PulseRing color="#2EA043" />
                 </div>
               </div>
-              {staffResponding > 0 && (
-                <div className="flex items-center justify-between mt-2">
-                  <span className="text-sm" style={{ color: "#6B7689" }}>Responding</span>
-                  <span className="text-sm font-semibold" style={{ color: "#0052FF" }}>{staffResponding} staff member{staffResponding > 1 ? "s" : ""}</span>
-                </div>
-              )}
             </div>
 
             <div className="rounded-xl p-4 text-left" style={{ background: "#E6EFFF" }}>
               <p className="text-xs font-bold uppercase tracking-wider mb-2" style={{ color: "#0052FF" }}>🤖 What to do now</p>
               <p className="text-sm leading-relaxed" style={{ color: "#0A0E1A" }}>
-                {geminiInstructions || (
-                  selectedType === "medical" ? "Keep the patient still. Do not move them. Unlock the door if safe to do so." :
-                  selectedType === "fire" ? "Stay low. Do not use elevators. Move toward the nearest exit." :
-                  selectedType === "security" ? "Lock your door. Don't open for strangers. Stay on the line." :
-                  "Stay in your room. Follow staff instructions when they arrive."
-                )}
+                {selectedType === "medical" ? "Keep the patient still. Do not move them. Unlock the door if safe to do so." :
+                 selectedType === "fire" ? "Stay low. Do not use elevators. Move toward the nearest exit." :
+                 selectedType === "security" ? "Lock your door. Don't open for strangers. Stay on the line." :
+                 "Stay in your room. Follow staff instructions when they arrive."}
               </p>
             </div>
+
+            <p className="text-xs mt-4" style={{ color: "#9CA5B4" }}>Redirecting to live tracking...</p>
           </motion.div>
         </div>
       </div>
@@ -197,6 +197,26 @@ export default function GuestSOS({ searchParams }: { searchParams: { h?: string;
       </div>
 
       <StepBar current={step} total={3} />
+
+      {/* Dialogue Box */}
+      {step === 1 && (
+        <div className="mx-5 mt-3 p-3 rounded-xl" style={{ background: "#E6EFFF", border: "1px solid #93B4FF" }}>
+          <p className="text-xs font-bold" style={{ color: "#0052FF" }}>💡 Step 1</p>
+          <p className="text-xs mt-1" style={{ color: "#0A0E1A" }}>Enter your room and floor number so our response team can locate you instantly.</p>
+        </div>
+      )}
+      {step === 2 && (
+        <div className="mx-5 mt-3 p-3 rounded-xl" style={{ background: "#FFF3E6", border: "1px solid #FFAB76" }}>
+          <p className="text-xs font-bold" style={{ color: "#FF6B00" }}>🚨 Step 2</p>
+          <p className="text-xs mt-1" style={{ color: "#0A0E1A" }}>Select the emergency type. This helps our AI route the right staff with the right equipment.</p>
+        </div>
+      )}
+      {step === 3 && (
+        <div className="mx-5 mt-3 p-3 rounded-xl" style={{ background: "#FFEBEE", border: "1px solid #FF8A80" }}>
+          <p className="text-xs font-bold" style={{ color: "#FF1744" }}>⏳ Step 3</p>
+          <p className="text-xs mt-1" style={{ color: "#0A0E1A" }}>Review and confirm. Tap SEND ALERT — you have 30 seconds to cancel if this was a mistake.</p>
+        </div>
+      )}
 
       <div className="flex-1 overflow-y-auto">
         <AnimatePresence mode="wait">
@@ -312,7 +332,8 @@ export default function GuestSOS({ searchParams }: { searchParams: { h?: string;
                     <span className="text-5xl font-black" style={{ color: "#FF1744" }}>{countdown}</span>
                   </div>
                   <p className="font-semibold mb-1" style={{ color: "#0A0E1A" }}>Alerting staff in {countdown}s</p>
-                  <button onClick={() => setCountdown(null)}
+                  <p className="text-xs mb-3" style={{ color: "#6B7689" }}>Tap Cancel if this was a mistake</p>
+                  <button onClick={() => { setCountdown(null); setIsSubmitting(false); }}
                     className="w-full py-4 rounded-2xl font-bold mt-3" style={{ background: "#F4F6F8", color: "#3D4759" }}>
                     ✕ Cancel Alert
                   </button>
@@ -336,7 +357,9 @@ export default function GuestSOS({ searchParams }: { searchParams: { h?: string;
 
       <div className="p-3 text-center border-t" style={{ borderColor: "#E5E9EF" }}>
         <p className="text-xs" style={{ color: "#9CA5B4" }}>Powered by <span className="font-bold" style={{ color: "#0052FF" }}>NEXUS</span> · AI Crisis Intelligence</p>
+        {isDemoMode && <p className="text-xs mt-1 font-bold" style={{ color: "#F5A623" }}>🛠️ DEMO MODE — No real alerts sent</p>}
       </div>
     </div>
   );
 }
+

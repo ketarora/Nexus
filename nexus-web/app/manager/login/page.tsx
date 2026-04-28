@@ -2,7 +2,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { signInWithEmailAndPassword } from "firebase/auth";
-import { auth } from "@/lib/firebase";
+import { auth, isDemoMode } from "@/lib/firebase";
 import { motion } from "framer-motion";
 
 export default function ManagerLogin() {
@@ -17,6 +17,12 @@ export default function ManagerLogin() {
     setLoading(true);
     setError("");
     try {
+      if (isDemoMode) {
+        // Demo mode: bypass auth
+        localStorage.setItem("nexus_demo_manager", "true");
+        router.push("/manager/command");
+        return;
+      }
       await signInWithEmailAndPassword(auth, email, password);
       router.push("/manager/command");
     } catch {
@@ -24,6 +30,11 @@ export default function ManagerLogin() {
     } finally {
       setLoading(false);
     }
+  };
+
+  const handleDemoLogin = () => {
+    localStorage.setItem("nexus_demo_manager", "true");
+    router.push("/manager/command");
   };
 
   return (
@@ -46,32 +57,46 @@ export default function ManagerLogin() {
         <div className="rounded-2xl p-8" style={{ background: "#FFFFFF", border: "1px solid #E5E9EF", boxShadow: "0 4px 24px rgba(10,14,26,0.06)" }}>
           <h2 className="text-xl font-bold mb-6" style={{ color: "#0A0E1A" }}>Sign In</h2>
 
-          <form onSubmit={handleLogin} className="space-y-4">
-            <div>
-              <label className="block text-sm font-semibold mb-2" style={{ color: "#3D4759" }}>Email</label>
-              <input type="email" value={email} onChange={e => setEmail(e.target.value)} required className="nx-input"
-                placeholder="manager@grandnexus.com" autoComplete="email" />
+          {isDemoMode ? (
+            <div className="space-y-4">
+              <div className="rounded-xl p-4" style={{ background: "#FFF8E6", border: "1px solid #F5A623" }}>
+                <p className="text-sm font-bold" style={{ color: "#B45309" }}>🛠️ Demo Mode Active</p>
+                <p className="text-xs mt-1" style={{ color: "#6B7689" }}>No Firebase credentials detected. Click below to enter the demo dashboard with pre-populated data.</p>
+              </div>
+              <button onClick={handleDemoLogin}
+                className="w-full py-4 rounded-2xl font-bold text-lg text-white transition-all"
+                style={{ background: "#0052FF" }}>
+                🚀 Enter Demo Dashboard
+              </button>
             </div>
-            <div>
-              <label className="block text-sm font-semibold mb-2" style={{ color: "#3D4759" }}>Password</label>
-              <input type="password" value={password} onChange={e => setPassword(e.target.value)} required className="nx-input"
-                placeholder="••••••••" autoComplete="current-password" />
-            </div>
+          ) : (
+            <form onSubmit={handleLogin} className="space-y-4">
+              <div>
+                <label className="block text-sm font-semibold mb-2" style={{ color: "#3D4759" }}>Email</label>
+                <input type="email" value={email} onChange={e => setEmail(e.target.value)} required className="nx-input"
+                  placeholder="manager@grandnexus.com" autoComplete="email" />
+              </div>
+              <div>
+                <label className="block text-sm font-semibold mb-2" style={{ color: "#3D4759" }}>Password</label>
+                <input type="password" value={password} onChange={e => setPassword(e.target.value)} required className="nx-input"
+                  placeholder="••••••••" autoComplete="current-password" />
+              </div>
 
-            {error && (
-              <div className="rounded-xl p-3 text-sm" style={{ background: "#FFEBEE", color: "#FF1744" }}>⚠️ {error}</div>
-            )}
+              {error && (
+                <div className="rounded-xl p-3 text-sm" style={{ background: "#FFEBEE", color: "#FF1744" }}>⚠️ {error}</div>
+              )}
 
-            <button type="submit" disabled={loading}
-              className="w-full py-4 rounded-2xl font-bold text-white transition-all mt-2"
-              style={{ background: loading ? "#9CA5B4" : "#0052FF" }}>
-              {loading ? "Signing in..." : "Access Command Center →"}
-            </button>
-          </form>
+              <button type="submit" disabled={loading}
+                className="w-full py-4 rounded-2xl font-bold text-white transition-all mt-2"
+                style={{ background: loading ? "#9CA5B4" : "#0052FF" }}>
+                {loading ? "Signing in..." : "Access Command Center →"}
+              </button>
+            </form>
+          )}
 
           <div className="mt-6 pt-4 border-t text-center" style={{ borderColor: "#E5E9EF" }}>
             <p className="text-xs" style={{ color: "#9CA5B4" }}>
-              Demo: manager@nexus.com / nexus2026
+              {isDemoMode ? "Running in prototype demonstration mode" : "Demo: manager@nexus.com / nexus2026"}
             </p>
           </div>
         </div>
@@ -79,3 +104,4 @@ export default function ManagerLogin() {
     </div>
   );
 }
+
