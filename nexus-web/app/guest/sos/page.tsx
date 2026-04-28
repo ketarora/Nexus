@@ -1,6 +1,6 @@
 "use client";
 export const dynamic = 'force-dynamic';
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, Suspense } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
 import { isDemoMode } from "@/lib/firebase";
@@ -51,7 +51,7 @@ function SuccessCheck() {
   );
 }
 
-export default function GuestSOS() {
+function GuestSOSContent() {
   const searchParams = useSearchParams();
   const router = useRouter();
 
@@ -85,7 +85,6 @@ export default function GuestSOS() {
 
     try {
       if (isDemoMode) {
-        // Demo mode: create incident in localStorage
         const incident = createDemoIncident(selectedType, room, floor, name, description);
         const stored = JSON.parse(localStorage.getItem("nexus_incidents") || "[]");
         stored.push(incident);
@@ -93,7 +92,6 @@ export default function GuestSOS() {
         localStorage.setItem("nexus_active_incident", incident.id);
         setIncidentId(incident.id);
       } else {
-        // Real Firebase mode
         const { collection, addDoc, serverTimestamp } = await import("firebase/firestore");
         const { db } = await import("@/lib/firebase");
         const ref = await addDoc(collection(db, "incidents"), {
@@ -110,7 +108,6 @@ export default function GuestSOS() {
       }
     } catch (err) {
       console.error("Failed to send alert:", err);
-      // Fallback to localStorage even in real mode if Firebase fails
       const incident = createDemoIncident(selectedType, room, floor, name, description);
       const stored = JSON.parse(localStorage.getItem("nexus_incidents") || "[]");
       stored.push(incident);
@@ -125,7 +122,6 @@ export default function GuestSOS() {
   const sel = INCIDENT_TYPES.find(t => t.id === selectedType);
 
   if (submitted && incidentId) {
-    // Auto-redirect to live tracking after 2 seconds
     setTimeout(() => {
       router.push(`/guest/active/${incidentId}`);
     }, 2000);
@@ -144,7 +140,6 @@ export default function GuestSOS() {
           <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.5 }}>
             <h1 className="text-3xl font-black mt-5 mb-2" style={{ color: "#0A0E1A" }}>Help Is Coming</h1>
             <p className="text-sm mb-6" style={{ color: "#6B7689" }}>Staff have been alerted. Stay calm and stay put.</p>
-
             <div className="rounded-2xl p-5 mb-4 text-left w-full"
               style={{ background: sel?.softColor || "#F4F6F8", border: `2px solid ${sel?.color || "#E5E9EF"}` }}>
               <div className="flex items-center gap-3 mb-3">
@@ -154,25 +149,7 @@ export default function GuestSOS() {
                   <p className="text-sm" style={{ color: "#6B7689" }}>Room {room} · Floor {floor}</p>
                 </div>
               </div>
-              <div className="flex items-center justify-between">
-                <span className="text-sm" style={{ color: "#6B7689" }}>Status</span>
-                <div className="flex items-center gap-1">
-                  <span className="text-sm font-semibold" style={{ color: "#2EA043" }}>Staff Alerted</span>
-                  <PulseRing color="#2EA043" />
-                </div>
-              </div>
             </div>
-
-            <div className="rounded-xl p-4 text-left" style={{ background: "#E6EFFF" }}>
-              <p className="text-xs font-bold uppercase tracking-wider mb-2" style={{ color: "#0052FF" }}>🤖 What to do now</p>
-              <p className="text-sm leading-relaxed" style={{ color: "#0A0E1A" }}>
-                {selectedType === "medical" ? "Keep the patient still. Do not move them. Unlock the door if safe to do so." :
-                 selectedType === "fire" ? "Stay low. Do not use elevators. Move toward the nearest exit." :
-                 selectedType === "security" ? "Lock your door. Don't open for strangers. Stay on the line." :
-                 "Stay in your room. Follow staff instructions when they arrive."}
-              </p>
-            </div>
-
             <p className="text-xs mt-4" style={{ color: "#9CA5B4" }}>Redirecting to live tracking...</p>
           </motion.div>
         </div>
@@ -182,9 +159,8 @@ export default function GuestSOS() {
 
   return (
     <div className="min-h-screen flex flex-col" style={{ background: "#FAFBFC", maxWidth: 480, margin: "0 auto" }}>
-      {/* Header */}
       <div className="p-4 flex items-center gap-3 sticky top-0 z-10"
-        style={{ background: "#FFFFFF", borderBottom: "1px solid #E5E9EF", boxShadow: "0 1px 4px rgba(10,14,26,0.06)" }}>
+        style={{ background: "#FFFFFF", borderBottom: "1px solid #E5E9EF" }}>
         <div className="w-10 h-10 rounded-xl flex items-center justify-center font-black text-white text-lg" style={{ background: "#0052FF" }}>N</div>
         <div>
           <h1 className="font-bold text-sm" style={{ color: "#0A0E1A" }}>NEXUS Emergency</h1>
@@ -198,29 +174,8 @@ export default function GuestSOS() {
 
       <StepBar current={step} total={3} />
 
-      {/* Dialogue Box */}
-      {step === 1 && (
-        <div className="mx-5 mt-3 p-3 rounded-xl" style={{ background: "#E6EFFF", border: "1px solid #93B4FF" }}>
-          <p className="text-xs font-bold" style={{ color: "#0052FF" }}>💡 Step 1</p>
-          <p className="text-xs mt-1" style={{ color: "#0A0E1A" }}>Enter your room and floor number so our response team can locate you instantly.</p>
-        </div>
-      )}
-      {step === 2 && (
-        <div className="mx-5 mt-3 p-3 rounded-xl" style={{ background: "#FFF3E6", border: "1px solid #FFAB76" }}>
-          <p className="text-xs font-bold" style={{ color: "#FF6B00" }}>🚨 Step 2</p>
-          <p className="text-xs mt-1" style={{ color: "#0A0E1A" }}>Select the emergency type. This helps our AI route the right staff with the right equipment.</p>
-        </div>
-      )}
-      {step === 3 && (
-        <div className="mx-5 mt-3 p-3 rounded-xl" style={{ background: "#FFEBEE", border: "1px solid #FF8A80" }}>
-          <p className="text-xs font-bold" style={{ color: "#FF1744" }}>⏳ Step 3</p>
-          <p className="text-xs mt-1" style={{ color: "#0A0E1A" }}>Review and confirm. Tap SEND ALERT — you have 30 seconds to cancel if this was a mistake.</p>
-        </div>
-      )}
-
       <div className="flex-1 overflow-y-auto">
         <AnimatePresence mode="wait">
-
           {step === 1 && (
             <motion.div key="s1"
               initial={{ opacity: 0, x: 30 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -30 }}
@@ -233,13 +188,13 @@ export default function GuestSOS() {
                 <div>
                   <label className="block text-sm font-semibold mb-2" style={{ color: "#3D4759" }}>Room Number *</label>
                   <input value={room} onChange={e => setRoom(e.target.value)} className="nx-input"
-                    style={{ fontSize: "2rem", fontWeight: 800, textAlign: "center", height: 72, letterSpacing: "0.05em" }}
+                    style={{ fontSize: "2rem", fontWeight: 800, textAlign: "center", height: 72, letterSpacing: "0.05em", width: "100%", border: "2px solid #E5E9EF", borderRadius: "16px" }}
                     placeholder="412" type="number" inputMode="numeric" autoFocus />
                 </div>
                 <div>
                   <label className="block text-sm font-semibold mb-2" style={{ color: "#3D4759" }}>Floor Number *</label>
                   <input value={floor} onChange={e => setFloor(e.target.value)} className="nx-input"
-                    style={{ fontSize: "2rem", fontWeight: 800, textAlign: "center", height: 72 }}
+                    style={{ fontSize: "2rem", fontWeight: 800, textAlign: "center", height: 72, width: "100%", border: "2px solid #E5E9EF", borderRadius: "16px" }}
                     placeholder="4" type="number" inputMode="numeric" />
                 </div>
               </div>
@@ -256,25 +211,21 @@ export default function GuestSOS() {
               initial={{ opacity: 0, x: 30 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -30 }}
               transition={{ duration: 0.22 }} className="p-5">
               <p className="text-xs font-bold uppercase tracking-widest mb-1" style={{ color: "#0052FF" }}>Step 2 of 3</p>
-              <h2 className="text-2xl font-black mb-1" style={{ color: "#0A0E1A" }}>What&apos;s Happening?</h2>
-              <p className="text-sm mb-5" style={{ color: "#6B7689" }}>Tap the type of emergency</p>
-
-              <div className="grid grid-cols-2 gap-3">
+              <h2 className="text-2xl font-black mb-1" style={{ color: "#0A0E1A" }}>What's Happening?</h2>
+              
+              <div className="grid grid-cols-2 gap-3 mt-4">
                 {INCIDENT_TYPES.map(type => {
                   const isSel = selectedType === type.id;
                   return (
                     <motion.button key={type.id} whileTap={{ scale: 0.94 }}
-                      onClick={() => { setSelectedType(type.id); if (typeof navigator !== "undefined" && navigator.vibrate) navigator.vibrate([40]); }}
+                      onClick={() => setSelectedType(type.id)}
                       className="p-4 rounded-2xl text-left transition-all duration-200"
                       style={{
                         background: isSel ? type.softColor : "#FFFFFF",
                         border: isSel ? `2px solid ${type.color}` : "1.5px solid #E5E9EF",
-                        boxShadow: isSel ? `0 0 0 4px ${type.color}18, 0 4px 16px ${type.color}28` : "0 1px 3px rgba(10,14,26,0.04)",
-                        transform: isSel ? "scale(1.02)" : "scale(1)",
                       }}>
                       <div className="text-4xl mb-2">{type.icon}</div>
                       <div className="font-bold text-sm" style={{ color: isSel ? type.color : "#0A0E1A" }}>{type.label}</div>
-                      <div className="text-xs mt-1" style={{ color: "#9CA5B4" }}>{type.desc}</div>
                     </motion.button>
                   );
                 })}
@@ -285,7 +236,7 @@ export default function GuestSOS() {
                   style={{ background: "#F4F6F8", color: "#3D4759" }}>← Back</button>
                 <button onClick={() => setStep(3)} disabled={!selectedType}
                   className="flex-[2] py-4 rounded-2xl font-bold text-lg text-white"
-                  style={{ background: selectedType ? "#FF1744" : "#E5E9EF", color: selectedType ? "white" : "#9CA5B4" }}>
+                  style={{ background: selectedType ? "#FF1744" : "#E5E9EF" }}>
                   REPORT 🚨
                 </button>
               </div>
@@ -298,68 +249,48 @@ export default function GuestSOS() {
               transition={{ duration: 0.22 }} className="p-5">
               <p className="text-xs font-bold uppercase tracking-widest mb-1" style={{ color: "#0052FF" }}>Step 3 of 3</p>
               <h2 className="text-2xl font-black mb-1" style={{ color: "#0A0E1A" }}>Confirm & Send</h2>
-              <p className="text-sm mb-5" style={{ color: "#6B7689" }}>Review your emergency report</p>
-
-              <div className="rounded-2xl p-5 mb-4 flex items-center gap-4"
-                style={{ background: sel?.softColor || "#F4F6F8", border: `2px solid ${sel?.color || "#E5E9EF"}` }}>
-                <div className="w-16 h-16 rounded-2xl flex items-center justify-center text-4xl flex-shrink-0"
-                  style={{ background: "white", boxShadow: "0 4px 12px rgba(0,0,0,0.08)" }}>{sel?.icon}</div>
-                <div>
-                  <p className="font-black text-lg" style={{ color: sel?.color }}>{sel?.label}</p>
-                  <p className="text-sm" style={{ color: "#3D4759" }}>Room {room} · Floor {floor}</p>
-                  <p className="text-xs" style={{ color: "#9CA5B4" }}>{hotelName}</p>
-                </div>
-              </div>
-
-              <div className="space-y-3 mb-5">
-                <input value={name} onChange={e => setName(e.target.value)} className="nx-input" placeholder="Your name (optional)" />
-                <textarea value={description} onChange={e => setDescription(e.target.value)} className="nx-input"
-                  style={{ minHeight: 72, resize: "none" }}
-                  placeholder="Brief description (e.g. father collapsed, not breathing)" maxLength={200} />
+              
+              <div className="space-y-3 mb-5 mt-4">
+                <input value={name} onChange={e => setName(e.target.value)} placeholder="Your name (optional)" 
+                  style={{ width: "100%", padding: "16px", borderRadius: "12px", border: "1.5px solid #E5E9EF" }}/>
+                <textarea value={description} onChange={e => setDescription(e.target.value)}
+                  style={{ width: "100%", padding: "16px", borderRadius: "12px", border: "1.5px solid #E5E9EF", minHeight: "100px" }}
+                  placeholder="Brief description (e.g. father collapsed)" />
               </div>
 
               {countdown !== null ? (
-                <motion.div initial={{ scale: 0.9, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} className="text-center">
-                  <div className="relative w-32 h-32 mx-auto mb-4 flex items-center justify-center">
-                    <svg className="absolute inset-0 w-full h-full -rotate-90">
-                      <circle cx="64" cy="64" r="54" fill="none" stroke="#E5E9EF" strokeWidth="6" />
-                      <motion.circle cx="64" cy="64" r="54" fill="none" stroke="#FF1744" strokeWidth="6"
-                        strokeLinecap="round"
-                        strokeDasharray={`${2 * Math.PI * 54}`}
-                        animate={{ strokeDashoffset: 2 * Math.PI * 54 * (1 - countdown / 30) }}
-                        transition={{ duration: 0.9, ease: "linear" }} />
-                    </svg>
-                    <span className="text-5xl font-black" style={{ color: "#FF1744" }}>{countdown}</span>
-                  </div>
-                  <p className="font-semibold mb-1" style={{ color: "#0A0E1A" }}>Alerting staff in {countdown}s</p>
-                  <p className="text-xs mb-3" style={{ color: "#6B7689" }}>Tap Cancel if this was a mistake</p>
+                <div className="text-center">
+                  <div className="text-5xl font-black mb-2" style={{ color: "#FF1744" }}>{countdown}s</div>
+                  <p className="font-semibold mb-4">Alerting staff...</p>
                   <button onClick={() => { setCountdown(null); setIsSubmitting(false); }}
-                    className="w-full py-4 rounded-2xl font-bold mt-3" style={{ background: "#F4F6F8", color: "#3D4759" }}>
-                    ✕ Cancel Alert
-                  </button>
-                </motion.div>
+                    className="w-full py-4 rounded-2xl font-bold" style={{ background: "#F4F6F8" }}>✕ Cancel Alert</button>
+                </div>
               ) : (
                 <div className="space-y-3">
-                  <motion.button whileTap={{ scale: 0.97 }}
-                    onClick={() => setCountdown(30)} disabled={isSubmitting}
-                    className="w-full py-5 rounded-2xl font-black text-xl text-white relative overflow-hidden"
-                    style={{ background: "#FF1744" }}>
-                    <span className="relative z-10">🚨 SEND EMERGENCY ALERT</span>
+                  <motion.button onClick={() => setCountdown(30)} disabled={isSubmitting}
+                    className="w-full py-5 rounded-2xl font-black text-xl text-white" style={{ background: "#FF1744" }}>
+                    🚨 SEND EMERGENCY ALERT
                   </motion.button>
-                  <button onClick={() => setStep(2)} className="w-full py-3 rounded-2xl font-semibold text-sm"
-                    style={{ background: "#F4F6F8", color: "#6B7689" }}>← Go Back</button>
+                  <button onClick={() => setStep(2)} className="w-full py-3 rounded-2xl font-semibold" style={{ background: "#F4F6F8" }}>← Go Back</button>
                 </div>
               )}
             </motion.div>
           )}
         </AnimatePresence>
       </div>
-
-      <div className="p-3 text-center border-t" style={{ borderColor: "#E5E9EF" }}>
-        <p className="text-xs" style={{ color: "#9CA5B4" }}>Powered by <span className="font-bold" style={{ color: "#0052FF" }}>NEXUS</span> · AI Crisis Intelligence</p>
-        {isDemoMode && <p className="text-xs mt-1 font-bold" style={{ color: "#F5A623" }}>🛠️ DEMO MODE — No real alerts sent</p>}
-      </div>
     </div>
   );
 }
 
+// THIS IS THE CRITICAL FIX: WRAPPING IN SUSPENSE
+export default function GuestSOS() {
+  return (
+    <Suspense fallback={
+      <div className="min-h-screen flex items-center justify-center font-bold text-gray-500" style={{ background: "#FAFBFC" }}>
+        Loading NEXUS...
+      </div>
+    }>
+      <GuestSOSContent />
+    </Suspense>
+  );
+}
