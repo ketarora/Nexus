@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Inter } from "next/font/google";
 import "../styles/globals.css";
+import { MockProvider } from "../components/MockProvider";
 
 const inter = Inter({ 
   subsets: ["latin"],
@@ -37,8 +38,10 @@ export default function RootLayout({
         <meta name="apple-mobile-web-app-capable" content="yes" />
         <meta name="apple-mobile-web-app-status-bar-style" content="default" />
       </head>
-      <body className={`${inter.className} antialiased`}>
-        {children}
+      <body className={`${inter.className} antialiased bg-nx-bg text-nx-ink`}>
+        <MockProvider>
+          {children}
+        </MockProvider>
       </body>
     </html>
   );
