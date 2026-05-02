@@ -1,94 +1,149 @@
 "use client";
 
 import Link from "next/link";
-import { motion } from "framer-motion";
+import { motion, useMotionTemplate, useMotionValue } from "framer-motion";
+import { MouseEvent } from "react";
+
+// --- 3D Hover Card Component ---
+function HoverCard({ children, href, delay, color }: { children: React.ReactNode, href: string, delay: number, color: string }) {
+  const mouseX = useMotionValue(0);
+  const mouseY = useMotionValue(0);
+
+  function handleMouseMove({ currentTarget, clientX, clientY }: MouseEvent) {
+    const { left, top, width, height } = currentTarget.getBoundingClientRect();
+    const x = clientX - left;
+    const y = clientY - top;
+
+    // Calculate rotation (max 10 degrees)
+    const rotateY = ((x / width) - 0.5) * 20;
+    const rotateX = ((y / height) - 0.5) * -20;
+
+    mouseX.set(rotateX);
+    mouseY.set(rotateY);
+  }
+
+  return (
+    <Link href={href} className="block perspective-1000">
+      <motion.div
+        initial={{ opacity: 0, y: 50 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.8, delay, ease: [0.16, 1, 0.3, 1] }}
+        onMouseMove={handleMouseMove}
+        onMouseLeave={() => { mouseX.set(0); mouseY.set(0); }}
+        whileHover={{ scale: 1.05 }}
+        style={{ rotateX: mouseX, rotateY: mouseY, transformStyle: "preserve-3d" }}
+        className="relative h-full bg-white backdrop-blur-xl border border-slate-200 rounded-3xl p-8 overflow-hidden group shadow-xl"
+      >
+        {/* Hover Gradient Glow */}
+        <div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-500 pointer-events-none mix-blend-multiply"
+             style={{ background: `radial-gradient(circle at 50% 50%, ${color}, transparent 70%)` }} />
+
+        {/* Content (pushed forward in 3D space) */}
+        <div style={{ transform: "translateZ(30px)" }} className="relative z-10 h-full flex flex-col">
+          {children}
+        </div>
+      </motion.div>
+    </Link>
+  );
+}
 
 export default function MasterLandingPage() {
   return (
-    <main className="min-h-screen bg-[#FAFBFC] flex flex-col items-center justify-center p-6 relative overflow-hidden font-sans">
-      {/* Background Decor */}
-      <div className="absolute top-[-10%] left-[-10%] w-[40%] h-[40%] bg-blue-500/10 rounded-full blur-3xl" />
-      <div className="absolute bottom-[-10%] right-[-10%] w-[40%] h-[40%] bg-red-500/10 rounded-full blur-3xl" />
+    <main className="min-h-screen bg-[#F8FAFC] flex flex-col items-center justify-center p-6 relative overflow-hidden font-sans text-slate-900">
+
+      {/* --- High-Contrast Emergency Background --- */}
+      <div className="absolute inset-0 z-0 bg-[radial-gradient(#E2E8F0_1px,transparent_1px)] [background-size:16px_16px] opacity-50" />
 
       <motion.div
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.8, ease: "easeOut" }}
-        className="text-center z-10 max-w-2xl"
+        animate={{ scale: [1, 1.1, 1], opacity: [0.1, 0.15, 0.1] }}
+        transition={{ duration: 10, repeat: Infinity, ease: "easeInOut" }}
+        className="absolute top-[-20%] left-[-10%] w-[60%] h-[60%] bg-blue-500 rounded-full blur-[120px] pointer-events-none z-0"
+      />
+      <motion.div
+        animate={{ scale: [1, 1.2, 1], opacity: [0.05, 0.1, 0.05] }}
+        transition={{ duration: 15, repeat: Infinity, ease: "easeInOut", delay: 2 }}
+        className="absolute bottom-[-30%] right-[-20%] w-[70%] h-[70%] bg-red-500 rounded-full blur-[150px] pointer-events-none z-0"
+      />
+
+      {/* --- Hero Section --- */}
+      <motion.div
+        initial={{ opacity: 0, scale: 0.95 }}
+        animate={{ opacity: 1, scale: 1 }}
+        transition={{ duration: 0.8, ease: [0.16, 1, 0.3, 1] }}
+        className="text-center z-10 max-w-3xl mb-16 relative"
       >
-        <h1 className="text-5xl md:text-6xl font-extrabold tracking-tight text-gray-900 mb-6 drop-shadow-sm">
-          NEXUS
-        </h1>
-        <p className="text-xl text-gray-600 mb-12 font-medium leading-relaxed">
-          AI-Powered Hospitality Crisis Intelligence. <br/> Select your role to enter the simulation.
+        <div className="mb-4 relative inline-block">
+          <h1 className="text-6xl md:text-8xl font-black tracking-tighter text-slate-900 drop-shadow-sm">
+            NEXUS
+          </h1>
+          <motion.div
+            className="absolute -right-4 -top-4 w-4 h-4 bg-red-500 rounded-full shadow-[0_0_12px_rgba(239,68,68,0.8)]"
+            animate={{ scale: [1, 1.5, 1], opacity: [1, 0.5, 1] }}
+            transition={{ duration: 2, repeat: Infinity }}
+          />
+        </div>
+
+        <p className="text-xl md:text-2xl text-slate-600 font-medium mb-8">
+          AI-Powered Hospitality Crisis Intelligence.
         </p>
+
+        <div className="inline-flex items-center gap-2 px-5 py-2.5 rounded-full bg-white border border-slate-200 shadow-sm text-sm font-bold text-slate-700 tracking-wide uppercase">
+          Select Role to Begin Simulation
+        </div>
       </motion.div>
 
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-8 z-10 w-full max-w-5xl">
-        {/* Guest Card */}
-        <motion.div
-          whileHover={{ y: -8, boxShadow: "0 24px 48px rgba(10,14,26,0.12)" }}
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.5, delay: 0.2 }}
-          className="bg-white rounded-2xl p-8 border border-gray-100 shadow-lg relative overflow-hidden group flex flex-col"
-        >
-          <div className="absolute top-0 right-0 p-4 opacity-10 group-hover:opacity-20 transition-opacity">
-             <span className="text-6xl">📱</span>
-          </div>
-          <h2 className="text-2xl font-bold mb-3 text-gray-800">Guest Portal</h2>
-          <p className="text-gray-500 mb-8 line-clamp-3 flex-1">Experience the frictionless SOS reporting flow. 3 taps, no login required, instantly triaged by Gemini AI.</p>
-          <Link href="/guest/sos?h=hotel_001&f=4&r=412" className="inline-flex items-center justify-center w-full bg-blue-600 text-white font-semibold py-3 px-6 rounded-xl hover:bg-blue-700 transition-colors shadow-lg shadow-blue-600/20 active:scale-95">
-            Enter as Guest
-          </Link>
-        </motion.div>
+      {/* --- Role Cards Grid --- */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-8 z-10 w-full max-w-6xl px-4 perspective-1000">
 
-        {/* Staff Card */}
-        <motion.div
-          whileHover={{ y: -8, boxShadow: "0 24px 48px rgba(10,14,26,0.12)" }}
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.5, delay: 0.4 }}
-          className="bg-white rounded-2xl p-8 border border-gray-100 shadow-lg relative overflow-hidden group flex flex-col"
-        >
-          <div className="absolute top-0 right-0 p-4 opacity-10 group-hover:opacity-20 transition-opacity">
-            <span className="text-6xl">🏃‍♂️</span>
+        {/* Guest */}
+        <HoverCard href="/guest/sos?h=hotel_001&f=4&r=412" delay={0.1} color="rgba(59, 130, 246, 0.15)">
+          <div className="flex justify-between items-start mb-6">
+            <div className="w-16 h-16 rounded-2xl bg-blue-50 flex items-center justify-center text-4xl shadow-inner border border-blue-100">📱</div>
+            <span className="px-3 py-1 bg-blue-100 text-blue-700 text-xs font-black uppercase tracking-widest rounded-full border border-blue-200">Initiator</span>
           </div>
-          <h2 className="text-2xl font-bold mb-3 text-gray-800">Staff App</h2>
-          <p className="text-gray-500 mb-8 line-clamp-3 flex-1">View the mobile-native responder interface. Receive instant AI protocols and actionable alerts when a crisis hits.</p>
-          <Link href="/staff/dashboard" className="inline-flex items-center justify-center w-full bg-indigo-600 text-white font-semibold py-3 px-6 rounded-xl hover:bg-indigo-700 transition-colors shadow-lg shadow-indigo-600/20 active:scale-95">
-            Enter as Staff
-          </Link>
-        </motion.div>
+          <h2 className="text-2xl font-black mb-3 text-slate-900">Guest Portal</h2>
+          <p className="text-slate-600 mb-8 leading-relaxed flex-1 font-medium text-sm">3 taps. No login. Instantly report crises dynamically triaged by Gemini AI.</p>
+          <div className="text-blue-600 font-black uppercase tracking-widest text-xs group-hover:text-blue-700 transition-colors flex items-center gap-2 mt-auto border-t border-slate-100 pt-4">
+            Launch SOS Flow <span className="text-lg group-hover:translate-x-2 transition-transform">→</span>
+          </div>
+        </HoverCard>
 
-        {/* Manager Card */}
-        <motion.div
-          whileHover={{ y: -8, boxShadow: "0 24px 48px rgba(10,14,26,0.12)" }}
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.5, delay: 0.6 }}
-          className="bg-white rounded-2xl p-8 border border-gray-100 shadow-lg relative overflow-hidden group flex flex-col"
-        >
-          <div className="absolute top-0 right-0 p-4 opacity-10 group-hover:opacity-20 transition-opacity">
-             <span className="text-6xl">🖥️</span>
+        {/* Staff */}
+        <HoverCard href="/staff/dashboard" delay={0.2} color="rgba(139, 92, 246, 0.15)">
+          <div className="flex justify-between items-start mb-6">
+             <div className="w-16 h-16 rounded-2xl bg-purple-50 flex items-center justify-center text-4xl shadow-inner border border-purple-100">🏃‍♂️</div>
+            <span className="px-3 py-1 bg-purple-100 text-purple-700 text-xs font-black uppercase tracking-widest rounded-full border border-purple-200">Responder</span>
           </div>
-          <h2 className="text-2xl font-bold mb-3 text-gray-800">Command Center</h2>
-          <p className="text-gray-500 mb-8 line-clamp-3 flex-1">The bird's-eye view. Live threat maps, AI predictive "Sentinel" alerts, and 112 emergency briefing generation.</p>
-          <Link href="/manager/command" className="inline-flex items-center justify-center w-full bg-gray-900 text-white font-semibold py-3 px-6 rounded-xl hover:bg-gray-800 transition-colors shadow-lg shadow-gray-900/20 active:scale-95">
-            Enter as Manager
-          </Link>
-        </motion.div>
+          <h2 className="text-2xl font-black mb-3 text-slate-900">Staff Hub</h2>
+          <p className="text-slate-600 mb-8 leading-relaxed flex-1 font-medium text-sm">Mobile-native interface. Receive instant AI-generated protocols and active dispatch alerts.</p>
+          <div className="text-purple-600 font-black uppercase tracking-widest text-xs group-hover:text-purple-700 transition-colors flex items-center gap-2 mt-auto border-t border-slate-100 pt-4">
+            View Dashboard <span className="text-lg group-hover:translate-x-2 transition-transform">→</span>
+          </div>
+        </HoverCard>
+
+        {/* Manager */}
+        <HoverCard href="/manager/command" delay={0.3} color="rgba(239, 68, 68, 0.15)">
+          <div className="flex justify-between items-start mb-6">
+             <div className="w-16 h-16 rounded-2xl bg-red-50 flex items-center justify-center text-4xl shadow-inner border border-red-100">🖥️</div>
+            <span className="px-3 py-1 bg-red-100 text-red-700 text-xs font-black uppercase tracking-widest rounded-full border border-red-200">Orchestrator</span>
+          </div>
+          <h2 className="text-2xl font-black mb-3 text-slate-900">Command Center</h2>
+          <p className="text-slate-600 mb-8 leading-relaxed flex-1 font-medium text-sm">The bird's-eye view. Sentinel predictive threat mapping, AI 112-Briefs, and Live Vision analysis.</p>
+          <div className="text-red-600 font-black uppercase tracking-widest text-xs group-hover:text-red-700 transition-colors flex items-center gap-2 mt-auto border-t border-slate-100 pt-4">
+            Enter Command <span className="text-lg group-hover:translate-x-2 transition-transform">→</span>
+          </div>
+        </HoverCard>
+
       </div>
 
-      {/* Footer Branding */}
+      {/* --- Footer --- */}
       <motion.div
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
-        transition={{ delay: 1, duration: 1 }}
-        className="absolute bottom-6 text-sm text-gray-400 font-medium tracking-wide text-center"
+        transition={{ delay: 0.8, duration: 1 }}
+        className="absolute bottom-6 text-center z-10"
       >
-        GOOGLE SOLUTION CHALLENGE 2026 PROTOTYPE <br/>
-        <span className="text-xs opacity-60">Optimized for Web Demonstration</span>
+        <p className="text-xs text-slate-400 font-black tracking-widest mb-1">GOOGLE SOLUTION CHALLENGE 2026</p>
       </motion.div>
     </main>
   );

@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useMockData } from "../../../components/MockProvider";
+import { CCTVVision } from "../../../components/CCTVVision";
 
 const PulseRing = ({ color }: { color: string }) => (
   <span className="relative flex h-3 w-3">
@@ -208,6 +209,13 @@ export default function CommandCenter() {
                       <p className="font-bold text-gray-900">{selectedIncident.location}</p>
                     </div>
                  </div>
+
+                 {/* LIVE AI VISION COMPONENT */}
+                 <CCTVVision type={selectedIncident.type} severity={selectedIncident.severity} />
+
+                 <button className="w-full mt-4 py-3 bg-gray-100 text-gray-900 rounded-xl font-bold border border-gray-200 hover:bg-gray-200 transition-colors flex items-center justify-center gap-2">
+                   <span>🚁</span> Launch Autonomous Drone
+                 </button>
 
                  {/* Gemini Brief Generator Mock */}
                  <div className="pt-6 border-t border-gray-100">
