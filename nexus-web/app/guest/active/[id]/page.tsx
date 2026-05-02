@@ -1,100 +1,120 @@
 "use client";
 import { useEffect, useState } from "react";
 import { useParams } from "next/navigation";
-import { doc, onSnapshot } from "firebase/firestore";
-import { db } from "@/lib/firebase";
+import { useMockData } from "../../../../components/MockProvider";
 import { motion } from "framer-motion";
-import type { Incident } from "@/lib/types";
-import { INCIDENT_ICONS, SEVERITY_CONFIG, getTimeSince } from "@/lib/types";
 
 export default function ActiveIncidentPage() {
   const params = useParams();
   const id = params.id as string;
-  const [incident, setIncident] = useState<Incident | null>(null);
+  const { incidents } = useMockData();
+  const [incident, setIncident] = useState<any | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     if (!id) return;
-    return onSnapshot(doc(db, "incidents", id), snap => {
-      if (snap.exists()) setIncident({ id: snap.id, ...snap.data() } as Incident);
-      setLoading(false);
-    });
-  }, [id]);
+    const found = incidents.find(inc => inc.id === id);
+    if (found) {
+      setIncident(found);
+    }
+    setLoading(false);
+  }, [id, incidents]);
 
   if (loading) return (
-    <div className="min-h-screen flex items-center justify-center" style={{ background: "#FAFBFC" }}>
+    <div className="min-h-screen flex items-center justify-center bg-gray-50 max-w-md mx-auto shadow-2xl">
       <div className="text-center">
         <div className="w-10 h-10 border-4 border-blue-200 border-t-blue-600 rounded-full animate-spin mx-auto mb-3" />
-        <p className="text-sm" style={{ color: "#6B7689" }}>Loading status...</p>
+        <p className="text-sm text-gray-500 font-semibold">Loading status...</p>
       </div>
     </div>
   );
 
   if (!incident) return (
-    <div className="min-h-screen flex items-center justify-center p-6" style={{ background: "#FAFBFC" }}>
-      <div className="text-center"><p className="text-4xl mb-3">🔍</p>
-        <h2 className="text-xl font-bold" style={{ color: "#0A0E1A" }}>Incident Not Found</h2>
+    <div className="min-h-screen flex items-center justify-center p-6 bg-gray-50 max-w-md mx-auto shadow-2xl">
+      <div className="text-center">
+        <p className="text-5xl mb-4 drop-shadow-md">🔍</p>
+        <h2 className="text-xl font-black text-gray-900 mb-2">Incident Not Found</h2>
+        <p className="text-gray-500 text-sm">This incident may have been resolved or does not exist.</p>
       </div>
     </div>
   );
 
-  const sev = incident.severity ? SEVERITY_CONFIG[incident.severity] : null;
-  const icon = INCIDENT_ICONS[incident.type] || "⚠️";
-  const statusMap: Record<string, { label: string; color: string; desc: string }> = {
-    pending: { label: "AI Processing...", color: "#F5A623", desc: "Our AI is analyzing your emergency" },
-    active: { label: "Staff Dispatched", color: "#0052FF", desc: "Staff have been alerted with AI protocols" },
-    responding: { label: "En Route", color: "#2EA043", desc: "Staff are heading to your location" },
-    contained: { label: "Under Control", color: "#2EA043", desc: "Situation is being managed" },
-    resolved: { label: "Resolved ✓", color: "#2EA043", desc: "Incident has been resolved" },
+  const getIcon = (type: string) => {
+    if (type.includes("Medical")) return "❤️‍🩹";
+    if (type.includes("Fire")) return "🔥";
+    if (type.includes("Security")) return "🛡️";
+    return "🚨";
   };
-  const st = statusMap[incident.status] || statusMap.pending;
+
+  const icon = getIcon(incident.type);
+
+  const isResolved = incident.status === "Resolved";
+  const stColor = isResolved ? "#10B981" : "#3B82F6";
+  const stLabel = isResolved ? "Resolved" : "Staff Dispatched";
+  const stDesc = isResolved ? "This incident has been handled." : "Staff are heading to your location.";
 
   return (
-    <div className="min-h-screen" style={{ background: "#FAFBFC", maxWidth: 480, margin: "0 auto" }}>
-      <div className="p-4 flex items-center gap-3 sticky top-0 z-10"
-        style={{ background: "#FFFFFF", borderBottom: "1px solid #E5E9EF" }}>
-        <div className="font-black text-base" style={{ color: "#0052FF" }}>NEXUS</div>
-        <span className="text-xs" style={{ color: "#9CA5B4" }}>·</span>
-        <span className="text-xs" style={{ color: "#6B7689" }}>Live Tracking · {getTimeSince(incident.createdAt)}</span>
-        <div className="ml-auto flex items-center gap-1">
+    <div className="min-h-screen bg-gray-50 max-w-md mx-auto shadow-2xl relative overflow-hidden flex flex-col font-sans">
+      <div className="p-4 flex items-center gap-3 sticky top-0 z-10 bg-white/80 backdrop-blur-md border-b border-gray-100">
+        <div className="font-black text-lg text-blue-600">NEXUS</div>
+        <span className="text-gray-300">·</span>
+        <span className="text-xs font-semibold text-gray-500">Live Tracking · {incident.time}</span>
+        <div className="ml-auto flex items-center gap-1.5 px-2 py-1 rounded-full bg-gray-50 border border-gray-100">
           <span className="relative flex h-2.5 w-2.5">
-            <span className="animate-ping absolute h-full w-full rounded-full opacity-75" style={{ background: st.color }} />
-            <span className="relative rounded-full h-2.5 w-2.5" style={{ background: st.color }} />
+            {!isResolved && <span className="animate-ping absolute h-full w-full rounded-full opacity-75" style={{ background: stColor }} />}
+            <span className="relative rounded-full h-2.5 w-2.5" style={{ background: stColor }} />
           </span>
-          <span className="text-xs font-bold ml-1" style={{ color: st.color }}>{st.label}</span>
+          <span className="text-xs font-bold" style={{ color: stColor }}>{stLabel}</span>
         </div>
       </div>
 
-      <div className="p-5 space-y-4">
+      <div className="p-5 flex-1 overflow-y-auto space-y-4">
         <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }}
-          className="rounded-2xl p-6 text-center"
-          style={sev ? { background: sev.softColor, border: `2px solid ${sev.color}` } : { background: "#F4F6F8", border: "1px solid #E5E9EF" }}>
-          <p className="text-6xl mb-3">{icon}</p>
-          <h2 className="text-xl font-black mb-1" style={{ color: sev?.color || "#0A0E1A" }}>
-            {incident.geminiClassification?.classification || incident.type}
+          className="rounded-3xl p-8 text-center bg-white shadow-sm border border-gray-100 relative overflow-hidden">
+          <div className="absolute top-0 left-0 w-full h-2" style={{ background: incident.severity >= 4 ? "#EF4444" : "#F59E0B" }} />
+
+          <p className="text-7xl mb-4 drop-shadow-md">{icon}</p>
+          <h2 className="text-2xl font-black mb-1 text-gray-900 leading-tight">
+            {incident.type}
           </h2>
-          <p className="text-sm" style={{ color: "#6B7689" }}>Room {incident.location.room} · Floor {incident.location.floor}</p>
-          {sev && <div className="inline-flex items-center gap-2 mt-3 px-4 py-1.5 rounded-full text-sm font-bold text-white" style={{ background: sev.color }}>
-            Severity {incident.severity} — {sev.label}
-          </div>}
+          <p className="text-sm font-semibold text-gray-500 mb-6">{incident.location}</p>
+
+          <div className="inline-flex items-center justify-center w-full py-3 rounded-2xl font-bold text-white shadow-lg"
+               style={{ background: incident.severity >= 4 ? "#EF4444" : "#F59E0B" }}>
+            Severity {incident.severity}
+          </div>
         </motion.div>
 
         <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }}
-          className="rounded-2xl p-5" style={{ background: "#FFFFFF", border: "1px solid #E5E9EF" }}>
-          <h3 className="font-bold mb-1" style={{ color: st.color }}>{st.label}</h3>
-          <p className="text-sm" style={{ color: "#6B7689" }}>{st.desc}</p>
-          {incident.assignedStaff.length > 0 && (
-            <p className="text-sm mt-2 font-semibold" style={{ color: "#0052FF" }}>
-              👥 {incident.assignedStaff.length} staff responding
-            </p>
+          className="rounded-2xl p-5 bg-white border border-gray-100 shadow-sm relative overflow-hidden group">
+          <div className="absolute right-0 top-0 w-16 h-16 bg-blue-50 rounded-bl-full -z-10 group-hover:scale-150 transition-transform duration-500" />
+          <h3 className="font-bold text-lg mb-1" style={{ color: stColor }}>{stLabel}</h3>
+          <p className="text-sm text-gray-500 leading-relaxed">{stDesc}</p>
+          {!isResolved && (
+            <div className="mt-4 pt-4 border-t border-gray-100 flex items-center gap-3">
+              <div className="flex -space-x-2">
+                <div className="w-8 h-8 rounded-full bg-blue-100 border-2 border-white flex items-center justify-center text-xs font-bold text-blue-600">JD</div>
+                <div className="w-8 h-8 rounded-full bg-indigo-100 border-2 border-white flex items-center justify-center text-xs font-bold text-indigo-600">SL</div>
+              </div>
+              <p className="text-sm font-bold text-gray-700">
+                Multiple staff responding
+              </p>
+            </div>
           )}
         </motion.div>
 
-        {incident.geminiClassification?.guestInstructions && (
+        {!isResolved && (
           <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 }}
-            className="rounded-2xl p-5" style={{ background: "#E6EFFF", border: "1px solid #93B4FF" }}>
-            <p className="text-xs font-bold uppercase tracking-wider mb-2" style={{ color: "#0052FF" }}>🤖 AI Instructions</p>
-            <p className="text-sm leading-relaxed" style={{ color: "#0A0E1A" }}>{incident.geminiClassification.guestInstructions}</p>
+            className="rounded-2xl p-5 bg-blue-50 border border-blue-100 relative overflow-hidden">
+            <div className="absolute top-0 right-0 p-4 opacity-10">
+              <span className="text-6xl">🤖</span>
+            </div>
+            <p className="text-xs font-black uppercase tracking-widest mb-2 text-blue-600 flex items-center gap-2">
+              <span>✨</span> AI Instructions
+            </p>
+            <p className="text-sm font-semibold text-blue-900 leading-relaxed">
+              Please remain calm and stay exactly where you are. Ensure any immediate hazards are avoided. Help is on the way.
+            </p>
           </motion.div>
         )}
       </div>
